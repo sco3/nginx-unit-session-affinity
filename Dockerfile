@@ -29,14 +29,13 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv using pip with system override (safe in container)
-RUN pip install --break-system-packages uv
-
 WORKDIR /app
 
 COPY pyproject.toml ./
-RUN uv venv /app/venv && \
-    /app/venv/bin/python -m pip install -e .
+RUN python3.12 -m venv /app/venv && \
+    /app/venv/bin/python -m pip install --upgrade pip setuptools wheel && \
+    /app/venv/bin/python -m pip install uv && \
+    /app/venv/bin/uv pip install -e .
 
 # Runtime stage: Create minimal runtime image
 FROM ubuntu:24.04
@@ -71,7 +70,7 @@ RUN chmod +x /app/start.sh
 
 # Set PATH to include nginx unit and Python packages
 ENV PATH="/usr/local/unit/sbin:/app/venv/bin:$PATH"
-ENV PYTHONPATH="/app/venv/lib/python3.12/site-packages:${PYTHONPATH:-}"
+ENV PYTHONPATH="/app/venv/lib/python3.12/site-packages"
 
 EXPOSE 8080
 
