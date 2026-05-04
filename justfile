@@ -1,5 +1,9 @@
 set shell := ["bash", "-lc"]
 
+# Display all available targets.
+default:
+    @just --list
+
 # Install project dependencies and development tools.
 build:
     uv install --with dev
