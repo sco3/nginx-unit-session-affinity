@@ -1,46 +1,44 @@
 FROM ubuntu:24.04
 
-# Отключаем интерактивность
+# Отключаем интерактив
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Устанавливаем базу и добавляем репозиторий NGINX Unit вручную
+# 1. Устанавливаем базу (curl нужен для ключа, ca-certificates для HTTPS)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
-    gnupg2 \
-    lsb-release \
-    && mkdir -p /usr/share/keyrings \
-    # Качаем ключ во временный файл
-    && curl -fLs https://unit.nginx.org/keys/nginx_signing.key -o /tmp/nginx.key \
-    # Конвертируем ключ
-    && gpg --dearmor -o /usr/share/keyrings/nginx-keyring.gpg /tmp/key.asc 2>/dev/null || gpg --dearmor -o /usr/share/keyrings/nginx-keyring.gpg /tmp/nginx.key \
-    # Добавляем репозиторий
-    && echo "deb [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/ubuntu/ noble unit" > /etc/apt/sources.list.d/unit.list \
-    # Теперь ставим сам Unit
-    && apt-get update \
-    && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Скачиваем ключ напрямую в keyring (как в инструкции)
+RUN curl --output /usr/share/keyrings/nginx-keyring.gpg \
+    https://unit.nginx.org/keys/nginx-keyring.gpg
+
+# 3. Настраиваем репозиторий
+RUN echo "deb [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/ubuntu/ noble unit" > /etc/apt/sources.list.d/unit.list && \
+    echo "deb-src [signed-by=/usr/share/keyrings/nginx-keyring.gpg] https://packages.nginx.org/unit/ubuntu/ noble unit" >> /etc/apt/sources.list.d/unit.list
+
+# 4. Обновляем списки и ставим Unit + Python 3.12
+RUN apt-get update && apt-get install -y --no-install-recommends \
     unit \
     unit-python3.12 \
-    python3.12 \
     python3.12-venv \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/* /tmp/nginx.key
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Настройка Python окружения
+# 5. Твои переменные для будущего[cite: 1]
+ENV PATH="/app/venv/bin:$PATH"
+ENV UNIT_VERSION="1.32.1"
+
+# 6. Настройка Python окружения
 COPY pyproject.toml ./
 RUN python3.12 -m venv /app/venv && \
     /app/venv/bin/pip install --no-cache-dir --upgrade pip && \
     /app/venv/bin/pip install --no-cache-dir .
 
-# Переменные, которые ты хотел сохранить для ссылок[cite: 1]
-ENV PATH="/app/venv/bin:$PATH"
-ENV PYTHONPATH="/app/venv/lib/python3.12/site-packages"
-
 COPY . .
 
-# Права доступа
+# 7. Права (в Docker не нужен systemctl, но нужны папки и права)
 RUN mkdir -p /var/lib/unit /var/run/unit && \
     chown -R unit:unit /app /var/lib/unit /var/run/unit && \
     chmod +x /app/start.sh
