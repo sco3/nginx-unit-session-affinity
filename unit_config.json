@@ -1,0 +1,15 @@
+{
+  "listeners": {
+    "*:8080": {
+      "pass": "applications/hello_app"
+    }
+  },
+  "applications": {
+    "hello_app": {
+      "type": "python 3.13",
+      "path": "/workspaces/nginx-unit-session-affinity",
+      "module": "main",
+      "callable": "app"
+    }
+  }
+}
