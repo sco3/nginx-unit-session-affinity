@@ -22,6 +22,7 @@ jobs:
       with:
         context: .
         file: ./Dockerfile
+        load: true
         push: false
         tags: nginx-unit-session-affinity:latest
         cache-from: type=gha
