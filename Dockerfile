@@ -1,25 +1,23 @@
-# Build stage: Build nginx unit from source with Python support
+# Build stage: Download pre-built nginx unit
 FROM ubuntu:24.04 AS builder
 
 RUN apt-get update && apt-get install -y \
-    build-essential \
     curl \
-    git \
-    python3.12 \
-    python3.12-dev \
-    libssl-dev \
-    libpcre3-dev \
-    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Download and build nginx unit
-RUN curl -fsSL https://github.com/nginx/unit/releases/download/1.35.0/unit-1.35.0.tar.gz | tar xz \
-    && cd unit-1.35.0 \
-    && ./configure --prefix=/usr/local/unit --with-python=python3.12 \
-    && make \
-    && make install
+# Download unitctl control tool
+RUN curl -L -o /usr/local/bin/unitctl https://github.com/nginx/unit/releases/download/1.35.0/unitctl-1.35.0-x86_64-unknown-linux-gnu && \
+    chmod +x /usr/local/bin/unitctl
+
+# Download and build nginx unit from source (no pre-built binaries available)
+RUN apt-get update && apt-get install -y build-essential git python3.12-dev libssl-dev libpcre3-dev zlib1g-dev && \
+    curl -fsSL https://github.com/nginx/unit/archive/refs/tags/1.35.0.tar.gz | tar xz && \
+    cd unit-1.35.0 && \
+    ./configure --prefix=/usr/local/unit --with-python=python3.12 && \
+    make && make install && \
+    cd .. && rm -rf unit-1.35.0
 
 # Python dependencies builder
 FROM ubuntu:24.04 AS python-builder
