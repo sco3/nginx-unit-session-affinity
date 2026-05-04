@@ -36,7 +36,7 @@ WORKDIR /app
 
 COPY pyproject.toml ./
 RUN uv venv /app/venv && \
-    /app/venv/bin/python -m uv pip install -e .
+    /app/venv/bin/python -m pip install -e .
 
 # Runtime stage: Create minimal runtime image
 FROM ubuntu:24.04
@@ -71,7 +71,7 @@ RUN chmod +x /app/start.sh
 
 # Set PATH to include nginx unit and Python packages
 ENV PATH="/usr/local/unit/sbin:/app/venv/bin:$PATH"
-ENV PYTHONPATH="/app/venv/lib/python3.12/site-packages:$PYTHONPATH"
+ENV PYTHONPATH="/app/venv/lib/python3.12/site-packages:${PYTHONPATH:-}"
 
 EXPOSE 8080
 
